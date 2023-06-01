@@ -4,7 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node dist/index.js",
+    "dev": "node src/index.ts",
+    "build": "npx tsc --build",
+    "clean": "rm -Rf dist",
+    "rebuild": "npm run clean && npm run build"
   },
   "repository": {
     "type": "git",
@@ -15,5 +20,9 @@
   "bugs": {
     "url": "https://github.com/glaubernespoli/typescript_csv_reader/issues"
   },
-  "homepage": "https://github.com/glaubernespoli/typescript_csv_reader#readme"
+  "homepage": "https://github.com/glaubernespoli/typescript_csv_reader#readme",
+  "devDependencies": {
+    "@types/node": "^20.2.5",
+    "typescript": "^5.0.4"
+  }
 }
