@@ -1,18 +1,32 @@
 import * as fs from "fs";
-import * as path from "path";
+import { argv } from "node:process";
 import * as rl from "readline";
 
+/**
+ * Interface containing the data of a CSV header.
+ */
 interface CsvHeader {
   values: Record<number, string>;
   numberOfFields: number;
 }
 
+/**
+ * Public method of the API. Parses a CSV file sourced from a stream. Defaults the encoding to UTF-8.
+ * @param inputStream the stream of the CSV file.
+ * @returns a Promise containing an array of Records. Each record represents a line of the CSV file, containing the values of each field.
+ */
 export function csvParser(inputStream: NodeJS.ReadableStream): Promise<Array<Record<string, string>>> {
   inputStream.setEncoding("utf8");
 
-  return processLineByLine(inputStream);
+  return parseCsvFile(inputStream);
 }
 
+/**
+ * Creates a ReadLine Interface. The ReadLine is a default module from Node, and is responsible for reading line by line on the CSV file.
+ * More at: https://nodejs.org/api/readline.html#readlinepromisescreateinterfaceoptions
+ * @param inputStream the stream of the CSV file.
+ * @returns a basic interface for reading line by line
+ */
 function createReadLineInterface(inputStream: NodeJS.ReadableStream): rl.Interface {
   return rl.createInterface({
     input: inputStream,
@@ -20,12 +34,20 @@ function createReadLineInterface(inputStream: NodeJS.ReadableStream): rl.Interfa
   });
 }
 
+/**
+ * Returns a regex to split the lines of the CSV file into blocks. Splits line by comma, double quotes are considered.
+ * Explanation: https://regexr.com/7esa1
+ * @returns a regex to get the fields on the line
+ */
 function getLineSplitterRegex(): RegExp {
-  //explanation: https://regexr.com/7esa1
-  //splits line by comma, double quotes are considered
   return /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
 }
 
+/**
+ * Reads the first line of the CSV file (the header), and returns a CsvHeader.
+ * @param rli the readLine interface
+ * @returns a CsvHeader, containing a record of each header of the file plus the number of data fields present in the CSV file.
+ */
 async function getCsvHeader(rli: rl.Interface): Promise<CsvHeader> {
   const re = getLineSplitterRegex();
   const headersStr: string = (await rli[Symbol.asyncIterator]().next()).value;
@@ -43,18 +65,31 @@ async function getCsvHeader(rli: rl.Interface): Promise<CsvHeader> {
   };
 }
 
-async function processLineByLine(inputStream: NodeJS.ReadableStream): Promise<Array<Record<string, string>>> {
+/**
+ * Parses the CSV file, reading each line and returning an array containing the data of each line (header exluded).
+ * @param inputStream the stream of the CSV file.
+ * @returns an array containing the data of each line
+ */
+async function parseCsvFile(inputStream: NodeJS.ReadableStream): Promise<Array<Record<string, string>>> {
   const rli = createReadLineInterface(inputStream);
-  const re = getLineSplitterRegex();
 
   const header = await getCsvHeader(rli);
+  return processLineByLine(rli, header);
+}
+
+/**
+ * Iterates through each line of data from the CSV file. The header was already processed, so it's ignored here.
+ * @param rli the readLine interface
+ * @param header the CsvHeader data
+ * @returns an array containing the data of each line
+ */
+async function processLineByLine(rli: rl.Interface, header: CsvHeader): Promise<Array<Record<string, string>>> {
+  const re = getLineSplitterRegex();
   const data: Array<Record<string, string>> = [];
 
   let lineNumber = 1;
-  let splitLine: string[];
-
   for await (const line of rli) {
-    splitLine = line.split(re);
+    const splitLine = line.split(re);
     if (splitLine.length != header.numberOfFields) {
       console.log(
         `Rejecting line [${lineNumber}], invalid number or arguments. Expected: [${header.numberOfFields}], found [${splitLine.length}]`
@@ -77,9 +112,20 @@ async function processLineByLine(inputStream: NodeJS.ReadableStream): Promise<Ar
   return data;
 }
 
-export default async function test() {
-  const csvFilePath = path.resolve(__dirname, "../test/data/example.csv");
-  const buffer = Buffer.from(csvFilePath);
+//CLI execution
+const filePath = argv[2];
+exec(filePath);
+
+/**
+ * Function executed as a CLI command.
+ * @param filePath The path of the CSV file
+ */
+async function exec(filePath: string | undefined) {
+  if (!filePath) {
+    throw new SyntaxError("The path of the CSV file must be provided.");
+  }
+
+  const buffer = Buffer.from(filePath);
   const fileStream = fs.createReadStream(buffer);
 
   const result = await csvParser(fileStream);
