@@ -11,7 +11,9 @@ interface CsvHeader {
 }
 
 /**
- * Public method of the API. Parses a CSV file sourced from a stream. Defaults the encoding to UTF-8.
+ * Public method of the API. Parses a CSV file sourced from a stream. Defaults the encoding to UTF-8 and the field separator to ','.
+ * **Personal Note:** I could have created an interface to receive values such as encoding, field separator, line separator etc. and pass is as a parameter
+ * but given the specification I didn't find it necessary.
  * @param inputStream the stream of the CSV file.
  * @returns a Promise containing an array of Records. Each record represents a line of the CSV file, containing the values of each field.
  */
