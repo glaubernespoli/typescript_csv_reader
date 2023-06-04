@@ -2,13 +2,15 @@ import * as fs from "fs";
 import * as path from "path";
 import * as rl from "readline";
 
+interface CsvHeader {
+  values: Record<number, string>;
+  numberOfFields: number;
+}
+
 export function csvParser(inputStream: NodeJS.ReadableStream): Promise<Array<Record<string, string>>> {
   inputStream.setEncoding("utf8");
 
-  //TODO fix
-  return new Promise((_resolve, _reject) => {
-    processLineByLine(inputStream);
-  });
+  return processLineByLine(inputStream);
 }
 
 function createReadLineInterface(inputStream: NodeJS.ReadableStream): rl.Interface {
@@ -24,107 +26,63 @@ function getLineSplitterRegex(): RegExp {
   return /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
 }
 
-// function processLine(line: string, splitter: RegExp, lineNumber:number, numberOfFields:number) {
-//   const splitLine = line.split(splitter);
-//   if (lineNumber == 1) {
-//     numberOfFields = splitLine.length;
-//   } else if (splitLine.length != numberOfFields) {
-//     console.log(
-//       `Rejecting line [${lineNumber}], invalid number or arguments. Expected: [${numberOfFields}], found [${splitLine.length}]`
-//     );
-//   }
-// }
-async function processLineByLine(inputStream: NodeJS.ReadableStream) {
+async function getCsvHeader(rli: rl.Interface): Promise<CsvHeader> {
+  const re = getLineSplitterRegex();
+  const headersStr: string = (await rli[Symbol.asyncIterator]().next()).value;
+
+  const headers = headersStr.split(re);
+  const headerRecord: Record<number, string> = {};
+
+  headers.forEach((value, index) => {
+    headerRecord[index] = value;
+  });
+
+  return {
+    values: headerRecord,
+    numberOfFields: headers.length,
+  };
+}
+
+async function processLineByLine(inputStream: NodeJS.ReadableStream): Promise<Array<Record<string, string>>> {
   const rli = createReadLineInterface(inputStream);
   const re = getLineSplitterRegex();
 
+  const header = await getCsvHeader(rli);
+  const data: Array<Record<string, string>> = [];
+
   let lineNumber = 1;
-  let numberOfFields = 0;
+  let splitLine: string[];
 
   for await (const line of rli) {
-    const splitLine = line.split(re);
-    if (lineNumber == 1) {
-      numberOfFields = splitLine.length;
-    } else if (splitLine.length != numberOfFields) {
+    splitLine = line.split(re);
+    if (splitLine.length != header.numberOfFields) {
       console.log(
-        `Rejecting line [${lineNumber}], invalid number or arguments. Expected: [${numberOfFields}], found [${splitLine.length}]`
+        `Rejecting line [${lineNumber}], invalid number or arguments. Expected: [${header.numberOfFields}], found [${splitLine.length}]`
       );
-
-      //DO SOMETHING
+      continue;
     }
-    // console.log({
-    //   lineNumber: lineNumber++,
-    //   data: splitLine,
-    // });
+
+    const lineData: Record<string, string> = {};
+    splitLine.forEach((value, index) => {
+      const headerName = header.values[index];
+      if (headerName) {
+        lineData[headerName] = value;
+      }
+    });
+
+    data.push(lineData);
+    lineNumber++;
   }
-  // line.on("line", (data) => {
-  //   const lineData = data.split(re);
-  //   console.log(lineData);
-  // });
 
-  //await once(line, "close");
+  return data;
 }
 
-// var read = async (inputStream: ReadableStream<Buffer>): Promise<ReadableStreamReadResult<Buffer>> => {
-//   return inputStream.getReader().read();
-// };
-
-// async function* makeTextFileLineIterator(buffer: Buffer) {
-//   const utf8Decoder = new TextDecoder("utf-8");
-//   // Initiate the source
-//   var bufferStream = new Stream.PassThrough();
-//   bufferStream.end(buffer);
-
-//   bufferStream.pipe(process.stdout);
-
-//   //   let reader = response.body.getReader();
-//   //   let { value, done: readerDone } = await reader.read();
-//   //   let chunk = value ? utf8Decoder.decode(value, { stream: true }) : "";
-
-//   //   let re = /\r\n|\n|\r/gm;
-//   //   let startIndex = 0;
-
-//   //   for (;;) {
-//   //     let result = re.exec(chunk);
-//   //     if (!result) {
-//   //       if (readerDone) {
-//   //         break;
-//   //       }
-//   //       let remainder = chunk.substr(startIndex);
-//   //       ({ value, done: readerDone } = await reader.read());
-//   //       chunk = remainder + (value ? utf8Decoder.decode(value, { stream: true }) : "");
-//   //       startIndex = re.lastIndex = 0;
-//   //       continue;
-//   //     }
-//   //     yield chunk.substring(startIndex, result.index);
-//   //     startIndex = re.lastIndex;
-//   //   }
-//   //   if (startIndex < chunk.length) {
-//   //     // last line didn't end in a newline char
-//   //     yield chunk.substr(startIndex);
-//   //   }
-// }
-
-async function test() {
+export default async function test() {
   const csvFilePath = path.resolve(__dirname, "../test/data/example.csv");
-  // const fileContent = fs.readFileSync(csvFilePath, { encoding: "utf-8" });
   const buffer = Buffer.from(csvFilePath);
-  // const fileStream = Readable.from(buffer, {
-  //   encoding: "utf8",
-  // });
   const fileStream = fs.createReadStream(buffer);
-  csvParser(fileStream);
 
-  // const buffer = Buffer.from(fileContent);
-  // for await (let line of makeTextFileLineIterator(buffer)) {
-  //   console.log(line);
-  // }
+  const result = await csvParser(fileStream);
+
+  console.log(result);
 }
-
-// function readFile(path: string): Buffer {
-//     return fs.readFile(path, { encoding: "utf8" }, (err, data) => {
-
-//     })
-// }
-
-test();
