@@ -76,7 +76,7 @@ async function parseCsvFile(inputStream: NodeJS.ReadableStream): Promise<Array<R
   const rli = createReadLineInterface(inputStream);
 
   const header = await getCsvHeader(rli);
-  return processLineByLine(rli, header);
+  return processDataLineByLine(rli, header);
 }
 
 /**
@@ -85,7 +85,7 @@ async function parseCsvFile(inputStream: NodeJS.ReadableStream): Promise<Array<R
  * @param header the CsvHeader data
  * @returns an array containing the data of each line
  */
-async function processLineByLine(rli: rl.Interface, header: CsvHeader): Promise<Array<Record<string, string>>> {
+async function processDataLineByLine(rli: rl.Interface, header: CsvHeader): Promise<Array<Record<string, string>>> {
   const re = getLineSplitterRegex();
   const data: Array<Record<string, string>> = [];
 
@@ -134,3 +134,7 @@ async function exec(filePath: string | undefined) {
 
   console.log(result);
 }
+
+//TODO:
+// 1. tests
+// 2. escape double quotes
