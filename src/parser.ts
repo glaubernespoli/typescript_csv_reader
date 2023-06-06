@@ -18,11 +18,11 @@ interface CsvHeader {
  * @param inputStream the stream of the CSV file.
  * @returns a Promise containing an array of Records. Each record represents a line of the CSV file, containing the values of each field.
  */
-export function csvParser(inputStream: NodeJS.ReadableStream): Promise<Array<Record<string, string>>> {
+export const csvParser = (inputStream: NodeJS.ReadableStream): Promise<Array<Record<string, string>>> => {
   inputStream.setEncoding("utf8");
 
   return parseCsvFile(inputStream);
-}
+};
 
 /**
  * Creates a ReadLine Interface. The ReadLine is a default module from Node, and is responsible for reading line by line on the CSV file.
@@ -30,28 +30,28 @@ export function csvParser(inputStream: NodeJS.ReadableStream): Promise<Array<Rec
  * @param inputStream the stream of the CSV file.
  * @returns a basic interface for reading line by line
  */
-function createReadLineInterface(inputStream: NodeJS.ReadableStream): rl.Interface {
+const createReadLineInterface = (inputStream: NodeJS.ReadableStream): rl.Interface => {
   return rl.createInterface({
     input: inputStream,
     crlfDelay: Infinity,
   });
-}
+};
 
 /**
  * Returns a regex to split the lines of the CSV file into blocks. Splits line by comma, double quotes are considered.
  * Explanation: https://regexr.com/7esa1
  * @returns a regex to get the fields on the line
  */
-function getLineSplitterRegex(): RegExp {
+const getLineSplitterRegex = (): RegExp => {
   return /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
-}
+};
 
 /**
  * Reads the first line of the CSV file (the header), and returns a CsvHeader.
  * @param rli the readLine interface
  * @returns a CsvHeader, containing a record of each header of the file plus the number of data fields present in the CSV file.
  */
-async function getCsvHeader(rli: rl.Interface): Promise<CsvHeader> {
+const getCsvHeader = async (rli: rl.Interface): Promise<CsvHeader> => {
   const re = getLineSplitterRegex();
   const headersStr: string = (await rli[Symbol.asyncIterator]().next()).value;
 
@@ -66,19 +66,19 @@ async function getCsvHeader(rli: rl.Interface): Promise<CsvHeader> {
     values: headerRecord,
     numberOfFields: headers.length,
   };
-}
+};
 
 /**
  * Parses the CSV file, reading each line and returning an array containing the data of each line (header exluded).
  * @param inputStream the stream of the CSV file.
  * @returns an array containing the data of each line
  */
-async function parseCsvFile(inputStream: NodeJS.ReadableStream): Promise<Array<Record<string, string>>> {
+const parseCsvFile = async (inputStream: NodeJS.ReadableStream): Promise<Array<Record<string, string>>> => {
   const rli = createReadLineInterface(inputStream);
 
   const header = await getCsvHeader(rli);
   return processDataLineByLine(rli, header);
-}
+};
 
 /**
  * Iterates through each line of data from the CSV file. The header was already processed, so it's ignored here.
@@ -86,7 +86,7 @@ async function parseCsvFile(inputStream: NodeJS.ReadableStream): Promise<Array<R
  * @param header the CsvHeader data
  * @returns an array containing the data of each line
  */
-async function processDataLineByLine(rli: rl.Interface, header: CsvHeader): Promise<Array<Record<string, string>>> {
+const processDataLineByLine = async (rli: rl.Interface, header: CsvHeader): Promise<Array<Record<string, string>>> => {
   const re = getLineSplitterRegex();
   const data: Array<Record<string, string>> = [];
 
@@ -113,17 +113,13 @@ async function processDataLineByLine(rli: rl.Interface, header: CsvHeader): Prom
   }
 
   return data;
-}
-
-//CLI execution
-const filePath = argv[2];
-exec(filePath);
+};
 
 /**
  * Function executed as a CLI command.
  * @param filePath The path of the CSV file
  */
-async function exec(filePath: string | undefined) {
+const exec = async (filePath: string | undefined) => {
   if (!filePath) {
     throw new SyntaxError("The path of the CSV file must be provided.");
   }
@@ -134,4 +130,8 @@ async function exec(filePath: string | undefined) {
   const result = await csvParser(fileStream);
 
   console.log(result);
-}
+};
+
+//CLI execution
+const filePath = argv[2];
+exec(filePath);
