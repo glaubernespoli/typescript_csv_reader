@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import { argv } from "node:process";
 import * as rl from "readline";
+import { weakEscapeDoubleQuotes } from "./utils/escapeUtils";
 
 /**
  * Interface containing the data of a CSV header.
@@ -103,7 +104,7 @@ async function processDataLineByLine(rli: rl.Interface, header: CsvHeader): Prom
     splitLine.forEach((value, index) => {
       const headerName = header.values[index];
       if (headerName) {
-        lineData[headerName] = value;
+        lineData[headerName] = weakEscapeDoubleQuotes(value);
       }
     });
 
@@ -134,7 +135,3 @@ async function exec(filePath: string | undefined) {
 
   console.log(result);
 }
-
-//TODO:
-// 1. tests
-// 2. escape double quotes

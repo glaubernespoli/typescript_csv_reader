@@ -56,7 +56,7 @@ describe("Parsing the CSV file", () => {
         "41.790245",
         "123.374698",
         "Asia/Shanghai",
-        '"""sJlPH """"peDTynn4PQ"""" wzIpO"""',
+        '"sJlPH ""peDTynn4PQ"" wzIpO"',
       ];
 
       const firstEntry = result.shift();
