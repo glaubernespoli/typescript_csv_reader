@@ -7,7 +7,6 @@
 export const weakEscapeDoubleQuotes = (value: string): string => {
   //gets the value between the first and last quotes
   const betweenQuotesRegEx = /"((?:""|[^"])*)"/;
-  //   const r = value.match(betweenQuotesRegEx);
 
   const r = betweenQuotesRegEx.exec(value);
 
